@@ -1,7 +1,10 @@
 module TaskLib where
 
 import Data.Char (isDigit)
-import Data.List
+-- import Data.List (listToMaybe)
+
+import Data.List (isPrefixOf)
+import Data.Maybe (listToMaybe)
 import Data.Time (getCurrentTime, toGregorian, utctDay)
 import Text.Printf (printf)
 
@@ -63,8 +66,8 @@ toString (Task d cd mabye_dd) = if length sdd > 1 then sd <> scd <> sdd <> eot e
       Nothing -> ""
     eot = eotTok <> "\n"
 
-parseTasks :: String -> Maybe [Task]
-parseTasks txt = undefined
+parseTasks :: String -> [Maybe Task]
+parseTasks txt = taskFromStrs <$> raw
   where
     lines' = lines txt
     raw = rawTasks lines'
@@ -76,6 +79,27 @@ rawTasks xs = filter (not . null) $ foldl f [[]] xs
     f acc x
       | x == eotTok = [] : acc
       | otherwise = [x : head acc] <> tail acc
+
+taskFromStrs :: [String] -> Maybe Task
+taskFromStrs [] = Nothing
+taskFromStrs xs = do
+  desc <- getDescription xs
+  cd <- getCreationDate xs
+  let dd = getDueDate xs
+  return $ Task desc cd dd
+  where
+    getDescription :: [String] -> Maybe String
+    getDescription = listToMaybe . map (drop (length descTok)) . filter (isPrefixOf descTok)
+
+    getCreationDate :: [String] -> Maybe Date
+    getCreationDate strs = do
+      dateStr' <- listToMaybe $ map (drop (length cdTok)) $ filter (isPrefixOf cdTok) strs
+      Just $ fromStr dateStr'
+
+    getDueDate :: [String] -> Maybe Date
+    getDueDate strs = do
+      dateStr' <- listToMaybe $ map (drop (length ddTok)) $ filter (isPrefixOf ddTok) strs
+      Just $ fromStr dateStr'
 
 t1 = Task {description = "Feed Dog", creationDate = (Date 12 1 2022), dueDate = (Just $ Date 13 1 2022)}
 
